@@ -1,14 +1,14 @@
 [
   {
-    'host': 'eca.example.com',
-    'apikey': 'abcdefghijklmnopqrstuvwxyz0123456789'
+    "host": "eca.example.com",
+    "apikey": "abcdefghijklmnopqrstuvwxyz0123456789"
   },
   {
-    'host': 'eda1.example.com',
-    'apikey': 'abcdefghijklmnopqrstuvwxyz0123456789'
+    "host": "eda1.example.com",
+    "apikey": "abcdefghijklmnopqrstuvwxyz0123456789"
   },
   {
-    'host': 'eda2.example.com',
-    'apikey': 'abcdefghijklmnopqrstuvwxyz0123456789'
+    "host": "eda2.example.com",
+    "apikey": "abcdefghijklmnopqrstuvwxyz0123456789"
   }
 ]
