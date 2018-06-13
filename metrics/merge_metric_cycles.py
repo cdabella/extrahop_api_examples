@@ -55,6 +55,7 @@ else:  # Use absolute start time
             0
         ],
         "until": absolute_timestamp_end
+    }
 
 rsp = requests.post(url, data=json.dumps(data), headers=headers, verify=False)
 rsp_json = rsp.json()
