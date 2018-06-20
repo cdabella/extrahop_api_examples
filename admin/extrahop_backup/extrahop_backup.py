@@ -7,7 +7,7 @@ requests.packages.urllib3.disable_warnings()
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Download EXA results.')
+    parser = argparse.ArgumentParser(description='Backup ECA and EDA configs programmatically.')
     parser.add_argument('-p', '--host', dest='host', help='EDA or ECA Host')
     parser.add_argument('-a', '--apikey', dest='apikey', help='ExtraHop API Key')
     parser.add_argument('-f', '--hostfile', dest='hostfile', help='File containing ECA/EDA hosts-API key KVPs in JSON format. Ignores host and apikey arguments')
