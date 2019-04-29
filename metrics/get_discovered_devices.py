@@ -2,6 +2,7 @@ import argparse
 import requests
 import csv
 import json
+import time
 
 requests.packages.urllib3.disable_warnings()
 
@@ -11,12 +12,13 @@ def parse_args():
     parser.add_argument('-p', '--host', dest='host', help='EDA or ECA Host')
     parser.add_argument('-k', '--apikey', dest='apikey', help='ExtraHop API Key')
     parser.add_argument('-o', '--output', dest='output', help='Output file')
+    parser.add_argument('-l', '--lookback', dest='lookback', help='lookback, in days, to query', default=7)
 
     return parser.parse_args()
 
-def get_discovered_devices(host, apikey, output):
-    # TODO paramaterize lookback
-    active_from = -7 * 24 * 60 * 60 * 1000   # 7 days in milliseconds
+def get_discovered_devices(host, apikey, output, lookback):
+
+    active_from = -1 * lookback * 24 * 60 * 60 * 1000   # 7 days in milliseconds
     active_until = 0                        # Current timestamp
 
     limit = 1000
@@ -73,11 +75,11 @@ def get_discovered_devices(host, apikey, output):
         print('\n\n###### Local device list #####')
         print(json.dumps(local_devices, sort_keys=True))
 
-    get_observed_ips(host, apikey, output, device_ids)
+    get_observed_ips(host, apikey, output, device_ids, lookback)
 
 
-def get_observed_ips(host, apikey, output, device_ids):
-    active_from = -7 * 24 * 60 * 60 * 1000  # 7 days in milliseconds
+def get_observed_ips(host, apikey, output, device_ids, lookback):
+    active_from = -1 * lookback * 24 * 60 * 60 * 1000  # 7 days in milliseconds
     active_until = 0  # Current timestamp
 
     limit = 1000
@@ -96,30 +98,71 @@ def get_observed_ips(host, apikey, output, device_ids):
             {"name": "bytes_in"},
             {"name": "bytes_out"},
         ],
-        "object_ids": [
-            113, 10
-        ],
+        "object_ids": [],
         "object_type": "device",
         "until": active_until
     }
 
-    data['object_ids'] = device_ids[0:limit]
+    chunk_num = 0
+    num_devices = len(device_ids)
+    devices = {}
 
-    try:
-        rsp = requests.post(url, body=json.dumps(data), headers=headers, verify=False)
-    except Exception as e:
-        raise e
-    if rsp.status_code != 200:
-        raise ValueError("cursor returned %s" % rsp.status_code)
+    print('\n\n###### Querying {} devices for IP peers #####'.format(num_devices))
 
-    rsp_json = rsp.json()
-    (metric_bytes_in, metric_bytes_out) = rsp_json['stats']['values']
+    while True:
+        data['object_ids'] = device_ids[chunk_num * limit: chunk_num * limit + limit]
+
+        try:
+            rsp = requests.post(url, data=json.dumps(data), headers=headers, verify=False)
+        except Exception as e:
+            raise e
+        if rsp.status_code != 200:
+            print(data['object_ids'])
+            print(chunk_num, limit)
+            print(device_ids)
+            print("cursor returned %s: %s" % (rsp.status_code, rsp.reason))
+            time.sleep(0.5)
+            continue
+
+        rsp_json = rsp.json()
+        (metric_bytes_in, metric_bytes_out) = rsp_json['stats'][0]['values']
+
+        for entry in metric_bytes_in:
+            ipaddr = entry['key']['addr']
+            device = devices.get(ipaddr, {'bytes_in': 0, 'bytes_out': 0})
+            device['bytes_in'] = device['bytes_in'] + entry['value']
+            devices[ipaddr] = device
+
+        for entry in metric_bytes_out:
+            ipaddr = entry['key']['addr']
+            device = devices.get(ipaddr, {'bytes_in': 0, 'bytes_out': 0})
+            device['bytes_out'] = device['bytes_out'] + entry['value']
+            devices[ipaddr] = device
+
+        chunk_num += 1
+        if chunk_num * limit > num_devices:
+            break
+        time.sleep(0.5)
+
+    fields = ['ipaddr', 'bytes_in', 'bytes_out']
+
+    if output:
+        print('\n\n###### Writing visible IP list to {} #####'.format(output + '_visibile_ips.csv'))
+        with open(output + '_visibile_ips.csv', 'w', newline='') as f:
+            w = csv.DictWriter(f, fields)
+            w.writeheader()
+            for k in devices:
+                w.writerow({field: devices[k].get(field) or k for field in fields})
+    else:
+        print('\n\n###### Visible IP list #####')
+        print(json.dumps(devices, sort_keys=True))
+
 
 
 def main():
     args = parse_args()
     print('##### Getting devices #####\n\n')
-    get_discovered_devices(args.host, args.apikey, args.output)
+    get_discovered_devices(args.host, args.apikey, args.output, args.lookback)
 
 
 
