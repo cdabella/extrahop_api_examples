@@ -86,7 +86,7 @@ celerybeat-schedule
 .venv
 venv/
 ENV/
-
+myenv/
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -102,3 +102,6 @@ ENV/
 
 # Private Files
 *.private
+
+# OSX Files
+.DS_Store
