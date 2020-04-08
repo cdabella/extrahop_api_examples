@@ -192,7 +192,6 @@ def main():
                 for entry in time_slice['values'][1]:
                     if is_internal(entry['key']['addr'], internal_networks) and device_is_internal:
                         continue
-
                     if entry['key']['addr'] in connections:
                         connections[entry['key']['addr']].add(device_ip)
                     else:
